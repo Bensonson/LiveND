@@ -7,7 +7,7 @@ I've tested the program with a sequence of images shot from my DJI drone. Althou
 Although I only has OM System mirrorless camera, by design this program will be useful for other raw files as well.
 
 
---AI-generated project. BELOW IS AI-GENERATED CONTENT---
+--BELOW IS AI-GENERATED CONTENT---
 
 ## Overview
 
