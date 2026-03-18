@@ -1,4 +1,4 @@
-# LiveND: Long-exposure tool based on stacking
+# LiveND: Digital ND Filter Based on Stacking Sequential Pictures
 
 I love minimalist landscapes but want to skip the filters, especially when I can just use computational photography to emulate instead. OM System's LiveND feature only supports up to ND64 on my OM-3. While Photoshop can handle stacking, as a hobbyist, I find it too bloated and the learning curve too steep. So I vibe-coded this project to do the stacking for me.
 
