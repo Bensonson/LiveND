@@ -18,6 +18,7 @@ LiveND is a robust computational photography tool designed to simulate the effec
 
 - **Format Support:** Works with various compressed (JPG, PNG) and RAW formats using `rawpy` and `OpenCV`.
 - **Video Support:** Feed it a single video file (MP4, MOV, etc.) and it will automatically extract and process its frames.
+- **Memory Chunking:** Automatic, robust RAM management allows stacking virtually infinite high-resolution frames (e.g., thousands of 4K images) without exhausting system memory. Intermediate processing passes are losslessly cached in a `./temp` folder.
 - **SIFT-based Alignment:** Automatic, robust alignment using SIFT and RANSAC, perfect for handheld or drone sequences with slight movement.
 - **ROI Selection:** Interactive or automatic Region of Interest (ROI) selection to anchor alignment to a specific static area.
 - **Exposure Matching:** Optional exposure normalization to handle changing lighting conditions between frames.
@@ -60,6 +61,7 @@ python LiveND.py --glob "path/to/photos/*" --mode median --out result.png
 
 - `--align`: Enabled by default. Uses SIFT features to align images before stacking.
 - `--select-roi`: Opens a window to interactively select a static region for alignment. Press SPACE or ENTER after drawing the box.
+- `--ram-limit`: The maximum allowed RAM in GB (default: `None`). If specified, it protects against OOM crashes by automatically calculating how many frames it can safely stack per batch, saving lossless intermediate results (`.npy`) to `./temp`. If omitted (`None`), it processes all frames in a single batch.
 - `--match-exposure`: Normalizes the exposure of frames to match the reference (first) frame.
 - `--wb`: White balance for RAW files (`camera` [default], `auto`, `daylight`).
 - `--ema-alpha`: Alpha value for EMA blending (default: 0.2).

@@ -192,6 +192,7 @@ if __name__ == "__main__":
     parser.add_argument("--tiff-compress", type=str, default="deflate", choices=["deflate", "lzw", "none"])
     parser.add_argument("--tiff-srgb", action="store_true")
     parser.add_argument("--exr", type=str, default="")
+    parser.add_argument("--ram-limit", type=float, default=None, help="Max RAM limit in GB. If specified, divides rendering into chunks to prevent OOM memory crashing.")
     
     args = parser.parse_args()
     files = sorted(glob.glob(args.glob))
@@ -235,6 +236,19 @@ if __name__ == "__main__":
     ref = load_image_linear(files[0], wb=args.wb)
     ref_mean = float(to_gray_linear(ref).mean())
     
+    # Memory chunking calculation
+    frame_bytes = ref.nbytes
+    if args.ram_limit is None:
+        chunk_size = len(files)
+        print("RAM limit not specified. Processing all frames in a single batch...")
+    else:
+        ram_limit_bytes = args.ram_limit * (1024**3)
+        # Using 40% of the RAM limit as the max allowance for the chunks, avoiding out of bounds due to Python GC lag
+        chunk_size = max(2, int((ram_limit_bytes * 0.4) / frame_bytes))
+        print(f"Single Frame RAM Footprint: {frame_bytes / (1024**2):.2f} MB")
+        print(f"Calculating dynamic chunk partitioning to respect {args.ram_limit}GB memory limit...")
+        print(f"Max Safe Chunk Size computed: {chunk_size} frames/batch.")
+    
     aligner = None
     if args.align:
         roi_rect = None
@@ -260,10 +274,6 @@ if __name__ == "__main__":
         print("Extracting features from reference frame...")
         aligner = FeatureAligner(to_gray_8bit(ref), roi_rect=roi_rect)
 
-    frames_list = [ref] if args.mode == "median" else []
-    accumulator = ref.copy()
-    current_out = ref.copy()
-    
     def process_frame(p):
         mov = load_image_linear(p, wb=args.wb)
         if args.match_exposure:
@@ -272,25 +282,60 @@ if __name__ == "__main__":
             mov = aligner.align(mov)
         return mov
 
-    print("Processing frames...")
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        futures = [pool.submit(process_frame, p) for p in files[1:]]
-        for future in tqdm(futures, total=len(futures), desc="Merging frames"):
-            mov = future.result()
-            if args.mode == "median":
-                frames_list.append(mov)
-            elif args.mode in ["average", "mean"]:
-                accumulator += mov
-            else:
-                current_out = (1.0 - args.ema_alpha) * current_out + args.ema_alpha * mov
-            
+    temp_dir = os.path.join(os.getcwd(), "temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    temp_files = []
+
+    chunks = [files[i:i + chunk_size] for i in range(0, len(files), chunk_size)]
+    print(f"Splitting {len(files)} total frames into {len(chunks)} operational chunks.")
+
+    for chunk_idx, chunk_files in enumerate(chunks):
+        print(f"\n--- Processing Chunk {chunk_idx+1}/{len(chunks)} ({len(chunk_files)} frames) ---")
+        chunk_frames = []
+        
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            futures = [pool.submit(process_frame, p) for p in chunk_files]
+            for future in tqdm(futures, total=len(futures), desc=f"Align & Load [Chunk {chunk_idx+1}]"):
+                chunk_frames.append(future.result())
+                
+        print(f"Stacking Chunk {chunk_idx+1} using {args.mode} mode...")
+        if args.mode == "median":
+            chunk_out = np.median(chunk_frames, axis=0).astype(np.float32)
+        elif args.mode in ["average", "mean"]:
+            chunk_out = np.mean(chunk_frames, axis=0).astype(np.float32)
+        else: # ema
+            chunk_out = chunk_frames[0].copy()
+            for frm in chunk_frames[1:]:
+                chunk_out = (1.0 - args.ema_alpha) * chunk_out + args.ema_alpha * frm
+        
+        temp_file = os.path.join(temp_dir, f"chunk_intermediate_{chunk_idx:04d}.npy")
+        np.save(temp_file, chunk_out)
+        temp_files.append(temp_file)
+        
+        # Aggressive memory cleanup
+        del chunk_frames
+        del chunk_out
+        del futures
+        
+    print("\n--- Final Pass ---")
+    print(f"Loading {len(temp_files)} intermediate chunks from './temp/X.npy' for global stack.")
+    final_frames = []
+    
+    for tmp in tqdm(temp_files, desc="Reading temp chunks"):
+        final_frames.append(np.load(tmp))
+        
+    print(f"Computing final {args.mode} output...")
     if args.mode == "median":
-        print("Computing median (this may take a moment)...")
-        out = np.median(frames_list, axis=0).astype(np.float32).clip(0.0, 1.0)
+        out = np.median(final_frames, axis=0).astype(np.float32).clip(0.0, 1.0)
     elif args.mode in ["average", "mean"]:
-        out = (accumulator / len(files)).clip(0.0, 1.0)
-    else:
-        out = current_out.clip(0.0, 1.0)
+        out = np.mean(final_frames, axis=0).clip(0.0, 1.0)
+    else: # ema
+        out = final_frames[0].copy()
+        for frm in final_frames[1:]:
+            out = (1.0 - args.ema_alpha) * out + args.ema_alpha * frm
+        out = out.clip(0.0, 1.0)
+        
+    del final_frames
     
     wrote_any = False
     if args.tiff:
@@ -305,4 +350,4 @@ if __name__ == "__main__":
         wrote_any = True
         
     if not wrote_any: raise SystemExit("No output specified. Use --tiff, --exr or --out.")
-    print("Done!")
+    print("Done! The intermediate chunk files have been preserved in the ./temp folder for sequence review.")
