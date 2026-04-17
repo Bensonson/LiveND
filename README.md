@@ -23,9 +23,10 @@ LiveND is a robust computational photography tool designed to simulate the effec
 - **ROI Selection:** Interactive or automatic Region of Interest (ROI) selection to anchor alignment to a specific static area.
 - **Exposure Matching:** Optional exposure normalization to handle changing lighting conditions between frames.
 - **Blending Modes:**
-  - `median`: Effectively removes moving subjects while creating the blur effect (default).
-  - `mean` / `average`: Standard averaging for smooth motion blur.
-  - `ema`: Exponential Moving Average.
+  - `mean` / `average`: Standard averaging for smooth motion blur (default). **When to use:** Use this for true, traditional ND filter effects. It uniformly accumulates light over the entire exposure time, creating perfect, smooth milky waterfalls, silky rivers, and brushed clouds.
+  - `median`: Effectively removes moving subjects. **When to use:** Use this when you want to erase crowds of people or moving cars from a busy street or landmark. As long as a moving object doesn't stay in the exact same spot for more than half the duration, it will vanish cleanly.
+  - `ema`: Exponential Moving Average. **When to use:** Use this to create a directional "comet tail" motion blur. It weights recent frames more than older frames, meaning the leading edge of motion will appear sharper while leaving a fading trail behind it.
+  - `lighten`: Maximum pixel brightness. **When to use:** The equivalent of Olympus "Live Composite" mode. Use this for capturing star trails, light painting, or fireworks. It only records new pixels if they are brighter than existing ones, ensuring dark cityscapes or night skies never overexpose.
 - **Output Formats:** 16-bit PNG, 16-bit TIFF, or EXR (linear or sRGB).
 
 ## Requirements
@@ -48,13 +49,13 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-python LiveND.py --glob "path/to/photos/*" --mode median --out result.png
+python LiveND.py --glob "path/to/photos/*" --out result.png
 ```
 
 ### Basic Arguments
 
 - `--glob`: **(Required)** The glob pattern to match input images. Example: `--glob "photos/*.DNG"`
-- `--mode`: The blending mode (`median` [default], `mean`, `average`, `ema`).
+- `--mode`: The blending mode (`mean` [default], `median`, `average`, `ema`, `lighten`).
 - `--out`: Path to save the final stacked image as a 16-bit PNG.
 
 ### Advanced Arguments

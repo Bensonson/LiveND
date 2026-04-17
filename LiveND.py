@@ -180,7 +180,7 @@ class FeatureAligner:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Robust LiveND using SIFT Stacking (supports many RAW formats, JPG, PNG).")
     parser.add_argument("--glob", type=str, required=True, help="Glob for image files (e.g. photos/*.RAW or *.DNG)")
-    parser.add_argument("--mode", type=str, default="median", choices=["median", "mean", "average", "ema"])
+    parser.add_argument("--mode", type=str, default="mean", choices=["median", "mean", "average", "ema", "lighten"])
     parser.add_argument("--ema-alpha", type=float, default=0.2)
     parser.add_argument("--align", action="store_true", help="Enable SIFT-based alignment", default=True)
     parser.add_argument("--select-roi", action="store_true", help="Interactively select a static ROI for alignment")
@@ -303,6 +303,8 @@ if __name__ == "__main__":
             chunk_out = np.median(chunk_frames, axis=0).astype(np.float32)
         elif args.mode in ["average", "mean"]:
             chunk_out = np.mean(chunk_frames, axis=0).astype(np.float32)
+        elif args.mode == "lighten":
+            chunk_out = np.max(chunk_frames, axis=0).astype(np.float32)
         else: # ema
             chunk_out = chunk_frames[0].copy()
             for frm in chunk_frames[1:]:
@@ -329,6 +331,8 @@ if __name__ == "__main__":
         out = np.median(final_frames, axis=0).astype(np.float32).clip(0.0, 1.0)
     elif args.mode in ["average", "mean"]:
         out = np.mean(final_frames, axis=0).clip(0.0, 1.0)
+    elif args.mode == "lighten":
+        out = np.max(final_frames, axis=0).clip(0.0, 1.0)
     else: # ema
         out = final_frames[0].copy()
         for frm in final_frames[1:]:
