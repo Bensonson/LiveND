@@ -1,8 +1,9 @@
 # LiveND: Long-exposure tool based on stacking
 
-I love minimalist landscape photography but don't want to bother bringing an ND1000 filter. OM System's LiveND feature only supports up to ND64 on my OM-3. While Photoshop can handle stacking, as a hobbyist, I find it too bloated and the learning curve too steep. So I vibe-coded this project to do the stacking for me.
+I love minimalist landscape photography but don't want to bother bringing an ND1000 filter. OM System's LiveND feature only supports up to ND64 on my OM-3. While Photoshop can handle stacking, as a hobbyist, I find PS too bloated and the learning curve too steep. So I vibe-coded this project to do the stacking for me.
 
-I've tested the program with a sequence of images shot from my DJI drone. Although I expected the stacking to fully compensate for the drone's movement, it has its limits. However, the resulting images are sharper than those produced by Affinity Photo 2, and the process is much more RAM-efficient. I plan to use it in the future for shorter drone bursts and with my mirrorless camera.
+On land it works great as far as the camera is on a tripod.
+Using it with my drone is another story. Although I expected the stacking to fully compensate for the drone's movement, it has its limits: it works well for continuous burst shooting (which has a limitation on the total number of pictures and thus total exposure time) but struggles with interval shooting (where you might want unlimited frames for a longer total exposure). Also, because my drone doesn't have a physical ND filter, the shutter speed is too fast. This makes the gap between sensor read-outs non-negligible, leading to obvious computational artifacts (similar to the staccato/"glitch" effect seen in videos shot without a proper ND filter).
 
 Although I only has OM System mirrorless camera, by design this program will be useful for other raw files as well.
 
