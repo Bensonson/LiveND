@@ -1,5 +1,6 @@
 import argparse
 import glob
+import os
 import numpy as np
 import rawpy
 import cv2
@@ -194,6 +195,38 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     files = sorted(glob.glob(args.glob))
+    
+    # Check if a single video file was matched
+    if len(files) == 1 and files[0].lower().endswith(('.mp4', '.mov', '.avi', '.mkv', '.m4v')):
+        video_path = files[0]
+        print(f"Video file detected: {video_path}. Extracting frames...")
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            raise SystemExit(f"Error: Could not open video {video_path}")
+        
+        frame_dir = os.path.dirname(video_path)
+        if frame_dir == "": frame_dir = "."
+        base_name = os.path.splitext(os.path.basename(video_path))[0]
+        
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        extracted_files = []
+        
+        with tqdm(total=total_frames, desc="Extracting frames") as pbar:
+            frame_idx = 0
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                # Save as high quality JPG to preserve disk space while maintaining fidelity
+                frame_path = os.path.join(frame_dir, f"{base_name}_frame_{frame_idx:05d}.jpg")
+                cv2.imwrite(frame_path, frame, [int(cv2.IMWRITE_JPEG_QUALITY), 98])
+                extracted_files.append(frame_path)
+                frame_idx += 1
+                pbar.update(1)
+        cap.release()
+        files = extracted_files
+        print(f"Extracted {len(files)} frames to {frame_dir}.")
+
     if len(files) < 2: raise SystemExit(f"Need at least 2 files, got {len(files)}")
     
     print(f"Found {len(files)} frames.")

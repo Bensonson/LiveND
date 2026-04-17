@@ -1,13 +1,13 @@
-# LiveND: Digital ND Filter Based on Stacking Sequential Pictures
+# LiveND: Long-exposure tool based on stacking
 
-I love minimalist landscapes but want to skip the filters, especially when I can just use computational photography to emulate instead. OM System's LiveND feature only supports up to ND64 on my OM-3. While Photoshop can handle stacking, as a hobbyist, I find it too bloated and the learning curve too steep. So I vibe-coded this project to do the stacking for me.
+I love minimalist landscape photography but don't want to bother bringing an ND1000 filter. OM System's LiveND feature only supports up to ND64 on my OM-3. While Photoshop can handle stacking, as a hobbyist, I find it too bloated and the learning curve too steep. So I vibe-coded this project to do the stacking for me.
 
 I've tested the program with a sequence of images shot from my DJI drone. Although I expected the stacking to fully compensate for the drone's movement, it has its limits. However, the resulting images are sharper than those produced by Affinity Photo 2, and the process is much more RAM-efficient. I plan to use it in the future for shorter drone bursts and with my mirrorless camera.
 
 Although I only has OM System mirrorless camera, by design this program will be useful for other raw files as well.
 
 
---BELOW IS AI-GENERATED CONTENT---
+--AI-generated project. BELOW IS AI-GENERATED CONTENT---
 
 ## Overview
 
@@ -16,6 +16,7 @@ LiveND is a robust computational photography tool designed to simulate the effec
 ## Features
 
 - **Format Support:** Works with various compressed (JPG, PNG) and RAW formats using `rawpy` and `OpenCV`.
+- **Video Support:** Feed it a single video file (MP4, MOV, etc.) and it will automatically extract and process its frames.
 - **SIFT-based Alignment:** Automatic, robust alignment using SIFT and RANSAC, perfect for handheld or drone sequences with slight movement.
 - **ROI Selection:** Interactive or automatic Region of Interest (ROI) selection to anchor alignment to a specific static area.
 - **Exposure Matching:** Optional exposure normalization to handle changing lighting conditions between frames.
@@ -37,9 +38,9 @@ The script requires Python 3.x and the following core dependencies:
 - `tifffile` (for TIFF export)
 - `imageio` (for EXR export)
 
-Install the core dependencies via pip:
+Install all required dependencies effortlessly using the provided requirements file:
 ```bash
-pip install numpy rawpy opencv-python tqdm
+pip install -r requirements.txt
 ```
 
 ## Usage
@@ -70,10 +71,18 @@ python LiveND.py --glob "path/to/photos/*" --mode median --out result.png
 - `--tiff-srgb`: Apply sRGB encoding to TIFF output.
 - `--exr`: Path to save an EXR file.
 
-## Example
+## Examples
 
+**Example 1: Stack RAW files**
 Stack a folder of RAW files using the median method and exposure matching, then output to a 16-bit TIFF:
 
 ```bash
 python LiveND.py --glob "images/*.ORF" --mode median --match-exposure --tiff "output_stack.tiff"
+```
+
+**Example 2: Extract and Stack Video Frames**
+Point the glob to a video file, it will automatically unpack the frames as high-quality JPGs and blend them:
+
+```bash
+python LiveND.py --glob "images/my_video.MP4" --out result.png
 ```
